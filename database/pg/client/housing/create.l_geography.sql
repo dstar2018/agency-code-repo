@@ -21,7 +21,7 @@ CREATE TABLE tbl_l_geography (
 -- I figure the first 5 cover all the possibilities (until we colonize Mars),
 -- So that we don't need a generic other.
 INSERT INTO tbl_l_geography VALUES ('SEATTLE','Seattle',sys_user(),current_timestamp,sys_user(),current_timestamp);
-INSERT INTO tbl_l_geography VALUES ('KING','King County',sys_user(),current_timestamp,sys_user(),current_timestamp);
+INSERT INTO tbl_l_geography VALUES ('KING','King County (Outside Seattle)',sys_user(),current_timestamp,sys_user(),current_timestamp);
 INSERT INTO tbl_l_geography VALUES ('WA','WA (Outside King County)',sys_user(),current_timestamp,sys_user(),current_timestamp);
 INSERT INTO tbl_l_geography VALUES ('US','United States (Outside WA)',sys_user(),current_timestamp,sys_user(),current_timestamp);
 INSERT INTO tbl_l_geography VALUES ('OTHER','Other Country',sys_user(),current_timestamp,sys_user(),current_timestamp);
