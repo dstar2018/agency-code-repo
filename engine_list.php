@@ -949,19 +949,9 @@ function list_control($control,$def,$control_array_variable='control',$format='S
 
 	/*
 	 * Must have 'view' and 'list' permissions for advanced control
-	 *
-	 * fixme: advanced control is currently still passed into the form, just hidden if no 
-	 *        permissions are found. This is a fairly major security hole, since an advanced
-	 *        user could edit the form details and gain access to fields that are supposed 
-	 *        to remain hidden.
 	 */
-	if (engine_perm($control,'R') and has_perm($def['perm_view'],'R')) {
 
-		$ac_button = span(Java_Engine::hide_show_button($def['object'].'AdvancedControl',true,true,' Advanced',true),' class="listControl"');
-
-	}
-
-	$advanced_control_form = table($advanced_control_form
+	$advanced_control_form = table(((engine_perm($control,'R') and has_perm($def['perm_view'],'R')) ? $advanced_control_form : '')
 						 . row(cell(formBoolean($control_array_variable.'[list][horizontal]',$horizontal,'f',imgTableVert(),'t',imgTableHorz()),'class="listControl"'))
 						 ,'',' width="100%" style="padding-top: 0px;" cellpadding="0" cellspacing="0" class="listControl"');
 
@@ -1016,13 +1006,13 @@ function list_control($control,$def,$control_array_variable='control',$format='S
 			? cell(open_office_button($control,$def,'','class="listControl"'),' class="listControl"') 
 			: '';
 	
-	       $out .= formto($page . $anchor);
-		 $out .= tablestart('','cellspacing="0" cellpadding="0" width="100%" class=""');
-		 $out .= row(cell('# Per Page ' 
+	     $adv = formto($page . $anchor);
+		 $adv .= tablestart('','cellspacing="0" cellpadding="0" width="100%" class=""');
+		 $adv .= row(cell('# Per Page ' 
 					.' '. form_field('number',$control_array_variable.'[list][max]',$max,'size="3" class="listControl"'). $display_link,'class="listControl"'
 					)
-				 // 			    . cell('Reverse'
-				 // 				     .' '. form_field('boolcheck',$control_array_variable.'[list][reverse]',$reverse),'class="listControl"')
+				  			    . cell('Reverse'
+				  				     .' '. form_field('boolcheck',$control_array_variable.'[list][reverse]',$reverse),'class="listControl"')
 				 . cell('Totals'
 					  .' '. form_field('boolcheck',$control_array_variable.'[list][show_totals]',$show_totals),'class="listControl"')
 				 . cell('Columns'
@@ -1032,9 +1022,11 @@ function list_control($control,$def,$control_array_variable='control',$format='S
 					  . ($ac_button ? oline().$ac_button : ''),'class="listControl" style="text-align: right;"'),"class=\"listControl\"")
 			 . $pass_control
 			 . tableend()
-			 . Java_Engine::hide_show_content($advanced_control_form,$def['object'].'AdvancedControl',true)
+			 //. Java_Engine::hide_show_content($advanced_control_form,$def['object'].'AdvancedControl',true)
+			 . $advanced_control_form
 			 . formend();
-		 $out = table(row($oobutton.cell($out)),'','width="100%" cellpadding="0" cellspacing="0" class="listControl"');
+		 $out = table(row($oobutton.cell(div($adv . toggle_label('Advanced'),'','class="hiddenDetail"'))),'','width="100%" cellpadding="0" cellspacing="0" class="listControl"');
+		 //$out = table(row($oobutton.cell($adv)),'','width="100%" cellpadding="0" cellspacing="0" class="listControl"');
 		 return $out;
       }
 }
@@ -1287,7 +1279,8 @@ function show_list_totals($result,$total,$def,$control,$fields)
 	/*
 	 * Display the totals row for a list box
 	 */
-	if ($control['list']['show_totals']) {
+	if ($control['list']['show_totals']
+		and (sql_num_rows($result) > 1)) {
 
 		$columns=$control['list']['columns'];
 		$cols=(count($fields)+2) * $columns;
@@ -1389,7 +1382,7 @@ function list_all_child_records($object,$id,$def,$output=false)
  		if ($display_object[$c_object]['show']) {
 			$js_hide = !$display_object[$c_object]['js_show'];
 			$page=$_SERVER['PHP_SELF'];
-			$out .= child_list($c_object,$id,$page,$object,'',$js_hide);
+			$out .= child_list($c_object,$id,$page,$object,$def['id_field'],$js_hide);
 			if ($output) {
 				out($out);
 				$out = '';
