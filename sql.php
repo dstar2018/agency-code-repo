@@ -546,7 +546,7 @@ function sql_lookup_description($code,$l_table,$v_field='',$d_field='description
 
 function sql_lookup_value_exists($value,$table,$v_field='')
 {
-	$v_field = orr($v_field,substr($l_table,2).'_code');
+	$v_field = orr($v_field,substr($table,2).'_code');
 	if (!is_array($value)) {
 		$value = array($value);
 	}
