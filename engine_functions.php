@@ -564,7 +564,6 @@ function config_object($object)
       /*
 	 * set global options not set elsewhere
 	 */
-
       $OBJECT = array('object'=>$object,
 			    'table'=>orr($engine[$object]['table'],$object) //the metadata functions require a table
 			    );
@@ -2128,6 +2127,11 @@ function form_generic_row($key,$value,&$def,$control,&$Java_Engine,$rec,$formvar
       $label=label_generic($key,$def,$action);
       $label = $not_valid_flag ? span($label,'class=engineFormError') : $label; //display in red invalid fields
 
+	if (in_array($type,array('lookup','lookup_multi'))) {
+		//FIXME: test for has_perm
+		$label .= oline() . smaller(add_link($pr['lookup']['table'],'','class="fancyLink advancedControl" target="_blank"'),2);
+	}
+
 	$label .= ($pr['comment'] && $pr['comment_show_'.$action])
 		? div(webify($pr['comment']),'',' class="generalComment"')
 		: ''; // comments look better on next line
@@ -3519,13 +3523,10 @@ function get_table_switch_object_id($id,$def,$key='')
 
 function get_client_refs_generic($rec,$action,$def)
 {
-outline("Action - $action");
 	switch ($action) {
 	case 'view':
 		$id    = $rec[$def['id_field']];
 		$table = $def['table'];
-outline("Id = $id");
-outline("table = $table");
 toggle_query_display();
 return object_references_f($table,$id,$sep='','from',array('client'));
 
@@ -3535,7 +3536,6 @@ return object_references_f($table,$id,$sep='','from',array('client'));
 			list($id,$table) = get_table_switch_object_id($id,$def);
 		}
 		if (!is_numeric($id)) { return false; }
-outline("Id = $id");
 
 		$filter = array('ref_table' => strtolower($table), //fixme: testing
 				    'ref_id'    => $id);
@@ -3724,7 +3724,6 @@ function build_lookup_query($field_def,$action)
 	$look_label=$look['label_field'];
 	$look_code=$look['value_field'];
 	$show_value = $field_def['show_lookup_code_'.$action];
-
 	// FIXME: This is better handling of lookup fields allowing for
 	// easier configuration and only used in cases that are guaranteed
 	// to fail otherwise.  (e.g., no field).  But this really should be

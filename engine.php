@@ -183,6 +183,7 @@ function engine($control='',$control_array_variable='control')
       $add_another_text = $text_options['add_another'];
 
 	$required_fields_text = $text_options['required_fields'];
+	$advanced_control_show = smaller(hlink('#','show advanced controls','','class="fancyLink" id="advancedControlButton"'));
 
 	/*
 	 * Passwords
@@ -601,6 +602,7 @@ function engine($control='',$control_array_variable='control')
 			    . formend();
 
 		    $output .= oline().$required_fields_text;
+			$output .= ' | ' . $advanced_control_show;
 		    $output .= $object_refs . $view_rec;
 
 		    if ($def['enable_staff_alerts_'.$action] 
@@ -729,6 +731,7 @@ function engine($control='',$control_array_variable='control')
 			    . div(button($submit_text,'','','','','class="engineButton"') . $reset_button . $cancel_button,'','style="clear: both"')
 				. $pre_refs
 				. $required_fields_text 
+					. ' | ' . $advanced_control_show
 				. (($required_fields_text and $object_refs_show_link) ? ' | ' : '')
 				. $object_refs_show_link
 			    . div($def['fn']['form']($REC,$def,$control),'','')  //GENERATE THE FORM
@@ -836,6 +839,7 @@ function engine($control='',$control_array_variable='control')
 						$is_void = sql_true($REC['is_void']);
 						$is_deleted = sql_true($REC['is_deleted']);
 						$is_voidable  = (!($is_void or $is_deleted) and array_key_exists('is_void',$REC));
+//outline("EDit link control: " . dump_array($edit_control_array));
 						$links = ($is_void or $is_deleted or (!$allow_edit)) ? '' : oline(link_engine($edit_control_array,$edit_text));
 						$links .= ($is_void or $is_deleted or (!$allow_add)) ? '' : oline(link_engine($clone_control_array,$clone_text));
 						$links .= ($is_deleted or (!$allow_delete)) ? '' : link_engine($delete_control_array,$delete_text);

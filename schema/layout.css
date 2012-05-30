@@ -270,3 +270,4 @@ div.client_elevated_concern { padding: 5px; }
 .updateEngine {     border: solid 1px #000; margin: 5px; background-color: #FFCDD0;
  }
 
+.advancedControl { display: none; }

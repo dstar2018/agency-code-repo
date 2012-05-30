@@ -129,7 +129,7 @@ $(function() {
 		$(this).hide().before('<a href="#" class="toggleLink fancyLink">'+text+'</a>');
 	});
 
-	$(".toggleLink").click( function(event) {
+	$(".toggleLink").live( 'click', function(event) {
 		event.preventDefault();
 		$(this).next().toggle();
 	});
@@ -237,6 +237,8 @@ $(function() {
 			$("#QuickSearchText").val( m[1] );
 		}
 	});
+/* Toggle Advanced Controls */
+	$("#advancedControlButton").click( function() { $(".advancedControl").toggle() } );
 });
 
 $(function() {
