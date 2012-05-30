@@ -48,12 +48,12 @@ function keyword_replace($keywords, $text, $ncs = false)
 }
 
 
-function preproc_replace($preproc, $text)
+function preproc_replace($preproc, $text, $class='sqlCode')
 {
     foreach ($preproc as $proc)
     {
         $search[] = "/(\\s*#\s*$proc\\b)/";
-        $replace[] = '<span class="keyword">\\0</span>';
+        $replace[] = '<span class="'.$class.'">\\0</span>';
     }
 
     return preg_replace($search, $replace, $text);

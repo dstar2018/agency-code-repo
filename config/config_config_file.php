@@ -40,8 +40,8 @@ $engine['config_file'] = array(
 	'id_field'=>'object',
 	'fields'=>array(
 		'config_file_text'=>array(
-			// FIXME:  This shouldn't be necessary
-			'value_format'=>'($x)'
+			'value_format'=>'highlight_string($x,true)',
+			'is_html'=>'true'
 		)
 	)
 );

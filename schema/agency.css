@@ -416,3 +416,7 @@ div#postVisitorResult {
 .middleText { vertical-align: middle; }
 
 .serverData { display: none; }
+
+/* for bundled SQL syntax highlighter */
+.sqlKeyword { color: red; }
+
