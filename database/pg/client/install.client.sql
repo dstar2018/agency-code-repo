@@ -170,6 +170,7 @@
 
 /* Add sample/provided client report(s) */
 \i add.report.client.sql
+\i add.report.profile.sql
 
 /* Enable Alert Notification for client objects */
 select

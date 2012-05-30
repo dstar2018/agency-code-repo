@@ -52,7 +52,7 @@ $engine['payment'] = array(
 	    'void_reason_code' => array('display_add' => 'hide','display_edit'=>'hide'),
 		// FIXME: report ID (9) hardcoded in link below.  Should be fixed when reports can be identified by code...
 		'receipt' => array('display_add' => 'hide',
-			'value_format' => 'sql_true($rec["is_void"]) ? httpimage($GLOBALS["AG_IMAGES"]["RECORD_VOIDED"],30,30,0) : link_report_output(9,"Print Receipt",array("pid" => $rec["payment_id"]),"payment_receipt.odt")',
+			'value_format' => 'sql_true($rec["is_void"]) ? httpimage($GLOBALS["AG_IMAGES"]["RECORD_VOIDED"],30,30,0) : link_report("PAYMENT_RECEIPT","Print Receipt",array("pid" => $rec["payment_id"]),"generate","payment_receipt.odt")',
 			'label'=>''
 		     )
 	    )

@@ -196,6 +196,8 @@ array(
 	'DEMO_PHOTO' => $off.'images/demo_photo.jpg',
 	'RECORD_VOIDED' => $off.'images/record_voided.png',
 	'RECORD_DELETED' => $off.'images/record_deleted.png',
+	'RECORD_ENABLED' => $off.'images/record_enabled.png',
+	'RECORD_DISABLED' => $off.'images/record_disabled.png',
 
 	//js buttons
 	'JS_HIDE'=>$off.'images/hide_button.png',
@@ -435,7 +437,7 @@ define('AG_REPORTS_REGEX_TEMPLATES','/^(.*)[|](.*)([|](.*))?$/U');
 
 define('AG_OPEN_OFFICE_ENABLE_EXPORT',true);
 define('AG_OPEN_OFFICE_DISABLED_MESSAGE','Open Office exports not enabled for this AGENCY installation');
-define('AG_OPEN_OFFICE_CALC_TEMPLATE','generic_spreadsheet.sxc');
+define('AG_OPEN_OFFICE_CALC_TEMPLATE','generic_spreadsheet.ods');
 define('AG_CLIENT_CARD_TEMPLATE','client_id.sxw');
 define('AG_STAFF_CARD_TEMPLATE','staff_id.sxw');
 
@@ -480,7 +482,9 @@ for ($x=129; $x < 255; $x++)
 
 $AG_OPENOFFICE_SYS_VARS = array(
 	'confidential' => confidential('',0,'TEXT'),
-	'staff_id'=>$GLOBALS['UID']);
+	'staff_id'=>$GLOBALS['UID'],
+	'org_name'=>org_name(),
+	'org_name_short'=>org_name('short'));
 
 define('AG_OPENOFFICE_GEN_PAGE',AG_REPORTS_URL . '?action=post_sql');
 
@@ -523,6 +527,7 @@ $AG_ENGINE_TABLES_CORE=array(
     'pg_catalog', // From the database
     'reference',
     'report',
+	'report_block',
     'staff',
 //  'staff_driver_authorization',
     'staff_employment',

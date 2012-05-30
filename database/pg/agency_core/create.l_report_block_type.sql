@@ -1,5 +1,5 @@
-CREATE TABLE tbl_l_report_category (
-	report_category_code VARCHAR(10) PRIMARY KEY,
+CREATE TABLE tbl_l_report_block_type (
+	report_block_type_code VARCHAR(10) PRIMARY KEY,
 	description TEXT NOT NULL UNIQUE,
     --system fields
     added_by                        INTEGER NOT NULL REFERENCES tbl_staff (staff_id),
@@ -15,8 +15,7 @@ CREATE TABLE tbl_l_report_category (
     sys_log                 TEXT
 );
 
-INSERT INTO tbl_l_report_category VALUES ('GENERAL','General/Uncategorized',sys_user(),current_timestamp,sys_user(),current_timestamp);
-INSERT INTO tbl_l_report_category VALUES ('HIDDEN','Hidden/System reports',sys_user(),current_timestamp,sys_user(),current_timestamp);
+INSERT INTO tbl_l_report_block_type VALUES ('TABLE','Table',sys_user(),current_timestamp,sys_user(),current_timestamp);
 
-CREATE VIEW l_report_category AS (SELECT * FROM tbl_l_report_category WHERE NOT is_deleted);
+CREATE VIEW l_report_block_type AS (SELECT * FROM tbl_l_report_block_type WHERE NOT is_deleted);
 

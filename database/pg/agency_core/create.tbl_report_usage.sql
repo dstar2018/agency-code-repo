@@ -3,6 +3,7 @@ CREATE TABLE tbl_report_usage
 	report_usage_id		SERIAL PRIMARY KEY,
 	/* see DB-mod for adding report_id field */
 	report_id		INTEGER REFERENCES tbl_report ( report_id ),
+	report_code		VARCHAR(40) REFERENCES tbl_report ( report_code ),
 	report_name		VARCHAR(100) NOT NULL,
 	output_format		VARCHAR(100) NOT NULL,
 	generated_by		INTEGER NOT NULL REFERENCES tbl_staff (staff_id),

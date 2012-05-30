@@ -30,27 +30,40 @@ should be included in this distribution.
 </LICENSE>
 */
 $engine['report'] = array(
+					'require_password'=>false,
 					'perm'=>'reports',
-					'perm_add'=>'admin',
-					'perm_edit'=>'admin',
+					'id_field'=>'report_code',
 					'add_link_show'=>true,
-					'list_fields' => array( 'report_id','report_title','report_category_code','report_comment'),
-					'title_format_add' =>'bigger(bold($x)) . " " . smaller(link_wiki_public("Reports","Help with writing reports"))',
-					'title_format_edit' =>'bigger(bold($x)) . " " . smaller(link_wiki_public("Reports","Help with writing reports"))',
-					'subtitle_eval_code'=>'smaller(link_wiki_public("Reports","Help with writing reports"))',
+					'list_fields' => array( 'report_code','report_title','report_category_code','block_count','report_comment'),
+//					'title_format_add' =>'bigger(bold($x)) . " " . smaller(link_wiki_public("Reports","Help with writing reports"))',
+//					'title_format_edit' =>'bigger(bold($x)) . " " . smaller(link_wiki_public("Reports","Help with writing reports"))',
+					'subtitle_html'=>'smaller(link_wiki_public("Reports","Help with writing reports"))',
+					'child_records'=>array('report_block'),
 					'fields' => array(
-						'report_id' => array(
-								'value_view' => '$x . smaller(link_report($rec["report_id"],"Run this report"))',
-								'value_list' => '$x ." ". smaller(link_report($rec["report_id"],"Run"))',
+						'report_code' => array(
+								'display_edit'=>'display',
+								'comment_show_add'=>true,
+								'comment_show_edit'=>true,
+								'comment_show_view'=>false,
+								'comment'=>'A unique label that identifies your report',
+								'label' => 'Report Code',
+								'force_case' => 'UPPER',
+								'value_view' => '$x . smaller(link_report($rec["report_code"],"Run this report"))',
+								'value_list' => '$x ." ". smaller(link_report($rec["report_code"],"Run"))',
 								'is_html' => true),
 
 						'output' => array(
 								'label' => 'Additional Output Options',
 								'comment' => 'One option per line, format filename|label'),
-						'sql' => array(
-								'comment' => 'Multiple SQL statements can be used, separated by "SQL" on its own line.'),
-						'report_permission' => array(
-								'comment' => 'Can specify multiple perms.  User must have one. Separate with space or comma.'),
+						'block_count' => array( 'label' => 'Blocks'),
+		'permission_type_codes'=>array(
+			'data_type'=>'lookup_multi',
+			'lookup_format'=>'checkbox_v',
+			'label_format_add'=>'oline($x) . smaller(add_link("permission","Add a new Permission type","target=\"_blank\""))',
+			'label_format_edit'=>'oline($x) . smaller(add_link("permission","Add a new Permission type","target=\"_blank\""))',
+			'label'=>'Permission',
+			'comment'=>'Any one of these permissions is sufficient'),
+		'sql_library_id'=>array('display'=>'hide'),
 						'variables' => array(
 								'comment' => 'Specify: Type, name, prompt, default (Example: VALUE min_gift "Specify minimum gift amount" 50)'),
 								'report_comment' => array( 

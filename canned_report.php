@@ -34,57 +34,61 @@ $quiet = true;
 include 'includes.php';
 $action = $_REQUEST['action'];
 
-if ($report_id = $_REQUEST['report_id']) {
+if ($report_id = orr($_REQUEST['report_code'],$_REQUEST['id'],$_REQUEST['report_id'])) {
 	if (!$report=get_report_from_db($report_id)) // fixme: just get_report()?
 	{
 		 $out .= alert_mark("Couldn't get report $report_id.");
 		 $report_id=NULL;
 	} else {
+		$report['variables']=report_parse_var_text($report['variables']);
 		$action = orr($action,'options');
-		$edit_this_report = link_engine(array('object'=>'report','action'=>'edit','id'=>$report_id),'Edit this Report');
+		$edit_this_report = link_report($report_id,'Edit this Report',array(),'edit');
+		$view_this_report = link_report($report_id,'View this Report',array(),'view');
 	}
 }
 
 $navigation = array();
-$main_reports_url = hlink(AG_REPORTS_URL.'?action=&report_id=','List Reports');
+$main_reports_url = hlink(AG_REPORTS_URL,'List Reports');
 
 switch ($action) {
  case 'post_sql': //this is for generating an openoffice document from posted sql (via list)
 	$dummy=agency_query("SET DATESTYLE TO SQL");
-	$out .= report_generate_from_posted();
+	report_generate_from_posted($out);
 	break;
 
  case 'generate':
 	$var_save=$report['variables'];
-	$report['variables']=report_parse_var_text($report['variables']);
-	 $title  = 'Report - ' . $report['report_name'];
-	 if (report_valid_request($report,$mesg)) {
-			 // navigate back to user options
-			 array_push($navigation,hlink($_SERVER['PHP_SELF'].'?action=options&report_id=' . $report_id,'Change options for this report'));
-			 array_push($navigation,link_engine(array('object'=>'report','action'=>'edit','id'=>$report_id),'Edit this report'));
-			 // valid request, generate report
-		       $dummy=agency_query('SET DATESTYLE TO SQL');
-			 
-			 track_report_usage($report_id,$report['report_title']);
-		
-			 $out .= report_generate($report);
-			 break;
-	 } else {
+//	$report['variables']=report_parse_var_text($report['variables']);
+	 $title  = 'Report - ' . $report['report_title'];
+	 if (!report_valid_request($report,$mesg)) {
 		 $out .= div($mesg,'','class="error"');
 		 $report['variables']=$var_save;
-		 // Fall through to options
-	 }
+	 } else {
+			$nav_link=report_user_options_form($report).toggle_label('Change options for this report');
+			 $navigation[]=div($nav_link,'','class="hiddenDetail fancyLink"');
+			 $navigation[]=$view_this_report;
+			 $navigation[]=$edit_this_report;
+			 // valid request, generate report
+			$dummy=agency_query('SET DATESTYLE TO SQL');
+			 
+			 track_report_usage($report);
+		
+			if (!($out=report_generate($report,$mesg))) {
+			  $out .= div($mesg,'','class="error"');
+			}
+			 break;
+	 } 
 
  case 'options' : // set user options for report
-	$report['variables']=report_parse_var_text($report['variables']);
 	$title = 'Select Options ('. $report['report_title']. ')';
 	// navigate back to list of reports
-	array_push($navigation,$main_reports_url);
-	array_push($navigation,$edit_this_report);
+	$navigation[]=$main_reports_url;
+	$navigation[]=$view_this_report;
+	$navigation[]=$edit_this_report;
 	// check permissions
-	$perm_type = $report['report_permission'];
+	$perm_type = $report['permission_type_codes'];
 	if (!be_null($perm_type) && (!has_perm($perm_type))) {
-		 $out .= alert_mark('You do not have the proper permissions ('.$perm_type.') to run this report');;
+		 $out .= alert_mark('You do not have the proper permissions ('.implode(', ',$perm_type).') to run this report');;
 		 break;
 	 }
 	 $out .= report_user_options_form($report);
@@ -92,7 +96,8 @@ switch ($action) {
 
  default: // report list
 	$title = 'AGENCY Report Page';
-	 $out .= report_generate_menu($navigation);
+	$perm= $tot_recs = NULL;
+	 $out .= call_engine(array('object'=>'report','action'=>'list','format'=>''),'',true,true,$perm,$tot_recs);
 }
 
 $out = html_heading_1($title) . $out ;

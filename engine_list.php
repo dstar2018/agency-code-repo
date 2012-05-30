@@ -1181,18 +1181,20 @@ function open_office_button($control,$def,$header='',$options='')
 
 
       $sql = list_query_string($def,$control);
-
 	if ($templates = $control['oo_templates'] and is_array($templates)) {
 		//must be passed as array of the form array(template_name=>label)
 		if (array_key_exists('spreadsheet',$templates)
 		    and count($templates)==1) { 
 			//nothing but the default template...no list
 		} else {
-			if (!array_key_exists('spreadsheet',$templates)) {
-				$templates['spreadsheet'] = '(default)';
+			foreach ($templates as $t) {
+				$template_list .= selectitem($t[0],$t[1]);
+				if ($t[0]=='spreadsheet') {
+					$spreadsheet_found = true;
+				}
 			}
-			foreach ($templates as $template_name => $template_label) {
-				$template_list .= selectitem($template_name,$template_label);
+			if (!$spreadsheet_found) {
+				$template_list .= selectitem('spreadsheet','(default)') . $template_list;
 			}
 			$template_list = oline().selectto(AG_REPORTS_VARIABLE_PREFIX.'template',$options)
 				.$template_list 
@@ -1203,14 +1205,14 @@ function open_office_button($control,$def,$header='',$options='')
 
 	$template_list = orr($template_list,hiddenvar(AG_REPORTS_VARIABLE_PREFIX.'template','spreadsheet'));
 
-      $button_text = $multi_templates ? 'Export File' : 'OpenOffice File';
+      $button_text = $multi_templates ? 'Export File' : 'Spreadsheet';
       $header=orr($header,$control['export_header'],$sql);
       $form = formto(AG_OPENOFFICE_GEN_PAGE)
 		. hiddenvar('sql1',htmlentities($sql))
 		. hiddenvar('report_header',htmlentities($header))
 		. hiddenvar('sql_count','1')
-		. button($button_text,'','','','',$options)
 		. $template_list
+		. button($button_text,'','','','',$options)
 		. formend();
       return $form;
 }

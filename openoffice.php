@@ -535,225 +535,65 @@ function oowriter_merge( $data_recs, $template, $data_eval="",$file_replace="",$
 
 }
 
-function office_merge( $data_recs, $template="",$extra_vars=array())
+function template_merge( $data_sets, $template='',$extra_vars=array())
 {
-	global $DEBUG;
-
+//outline(dump_array($data_sets));
 	if (!AG_OPEN_OFFICE_ENABLE_EXPORT) {
-
 		die(AG_OPEN_OFFICE_DISABLED_MESSAGE);
-
 	}
+	require_once($off . 'bundled/tbs/tbs_class.php');
+	require_once($off . 'bundled/tbs/tbs_plugin_opentbs.php');
+
+	if ($template=='spreadsheet') {
+		$template=AG_OPEN_OFFICE_CALC_TEMPLATE;
+	}	
 	$template = orr($template,AG_OPEN_OFFICE_CALC_TEMPLATE);
 	$default_template = preg_match('/'. AG_OPEN_OFFICE_CALC_TEMPLATE.'/',$template);
+	//FIXME: sloppy handling of temp directory?
     $template=preg_match('/\/tmp\//s',$template)
         ? $template
         : AG_TEMPLATE_DIRECTORY . '/' . $template;
-    $zip_files=unzip($template);
-	$contents=$zip_files["content.xml"];
-$DEBUG && outline("contents before: " . webify($contents));
+
+	$global_vars=array_merge($extra_vars,$GLOBALS['AG_OPENOFFICE_SYS_VARS']);
+	//$global_vars['debug_msg']=dump_array($data_sets);
+	$blocks=$data_sets['report_block'];
+	unset($data_sets['report_block']);
+	$doc = new clsTinyButStrong;
+	$doc->Plugin(TBS_INSTALL, OPENTBS_PLUGIN);
+	$doc->LoadTemplate($template);
+	//$doc->SetOption('noerr','true');
+	// Global blocks
+	$doc->MergeField('global',$global_vars);
+	$doc->MergeField('report',$data_sets);
+	for ($x=0;$x<count($blocks);$x++) {
+		while (in_array('O_TEMPLATE',$blocks[$x]['suppress_output_codes'])) {
+			unset($blocks[$x]);
+			$blocks=array_values($blocks);
+			//$x--;
+		}
+	}
+
+	$doc->MergeBlock('sections',range(1,count($blocks)));
+	// Report blocks
+	for ($x=1;$x<=count($blocks);$x++) {
+		// Template numbering starts at 1, arrays at 0
+		$block=$blocks[$x-1];
+		$block_vals=$block['values'];
+		unset($block['values']);
+		// Block vars
+		$doc->MergeBlock('section'.$x,array($block));
+		// Block values
+		$doc->MergeBlock("data$x",range(1,count($block_vals)));
+		for ($y=1;$y<=count($block_vals);$y++) {
+			$headers=array_keys($block_vals[$y-1][0]);
+			$doc->MergeBlock("headers$x-$y,headers{$x}-{$y}a",$headers);
+			$doc->MergeBlock("values$x-$y",$block_vals[$y-1]);
+		}
+	}
+	$doc->Show(OPENTBS_DOWNLOAD);
+	page_close();
+	exit;
 	
-	// replacement of extra vars
-	// not sure if these should be done first, or last
-	// newlines converted to OO format
-	foreach( array_merge($extra_vars,$GLOBALS['AG_OPENOFFICE_SYS_VARS']) as $key=>$value) 
-	//	foreach( $extra_vars as $key=>$value) 
-	{
-		// FIXME:  This is actually doing a strip extra new lines
-		// and a newlines-> OO format conversion
-		// This should be run through ooify
-		// for the NL conversion, and to pick up binary data
-		// a la bug 6009.
-		// For the moment I'm not touching this, simple as it is
-		// as I don't feel like breaking anything else today.
-		$contents=preg_replace('/\$' . "$key/",
-					preg_replace('/\n\n?/s','</text:p><text:p>',htmlspecialchars($value)),$contents);
-	}
-$DEBUG && outline(red("contents after: " . webify($contents)));
-	$row_start_regexp = "<table:table-row\s?[^<]*>";
-	$cell_start_regexp = "<table:table-cells?[^<]*>";
-	$row_end_regexp = "<\/table:table-row>";
-	$cell_end_regexp = "<\/table:table-cell>";
-    $blank_cell_regexp="<table:table-cell.*?\/>";
-    $cell_regexp = "($cell_start_regexp.*?$cell_end_regexp)|$blank_cell_regexp";
-	$data_regexp = "/(.*)(($row_start_regexp)($cell_start_regexp(.*?\\\$DATA-ROW.*?)$cell_end_regexp)(($cell_regexp)*$row_end_regexp))(.*)/i";
-	$header_regexp="/(.*)(($row_start_regexp($cell_regexp)*)($cell_start_regexp(.*?\\\$HEADER-CELL.*?)$cell_end_regexp)($cell_regexp)*($row_end_regexp))/i";
-	$header_regexp="/(.*)($cell_start_regexp.*?\\\$HEADER-CELL.*?$cell_end_regexp)(.*)/i";
-	if ($default_template)
-	{
-       $data_regexp=preg_replace("/ROW/","CELL",$data_regexp);
-        if (! preg_match($data_regexp,$contents,$matches))
-        {
-            outline("Sorry, I tried to use the default template, but couldn't find \$DATA-CELL in the template");
-			outline(blue(webify("Contents = $contents")));
-			outline(red(webify("Regexp = $data_regexp")));
-            return false;
-        }
-	}
-	preg_match($data_regexp,$contents,$matches);
-	$data_template_start=$matches[1];
-	$data_template_end=$matches[9];
-	$data_template_row=$matches[4];
-	$data_template_row_start=$matches[3];
-	$data_template_row_end=$matches[6];
-	$data_template_cells = xml_parse_row($matches[4]);
-$DEBUG && outline((!$default_template ? "Not " : "") . "Using Default Template");
-$DEBUG && outline("Matches: " . dump_array($matches));
-$DEBUG && outline("data_template_cells: " . dump_array($data_template_cells));
-
-$DEBUG && outline(red(webify("Before doing header cell, data_template_start=$data_template_start")));
-$DEBUG && outline(red(webify("Header regexp = $header_regexp")));
-	if (preg_match($header_regexp,$data_template_start,$matches))
-    {
-        $data_template_start=$matches[1];
-//        $header_template_row_start=$matches[3];
-        $header_template_cell=$matches[2];
-        $header_template_row_end=$matches[3];
-$DEBUG && outline(blue("Here are my HEADER-CELL matches: " . dump_array($matches)));
-    }
-	else
-	{
-$DEBUG && outline(blue("No HEADER-CELL matches found"));
-	}
-	// parse data cells into array
-	for ($y=0;isset($data_template_cells[$y]);$y++) //go through cells
-	{
-		$name="dummy";
-		$cell_contents = xml_parse_cell($data_template_cells[$y]);
-$DEBUG && outline(blue("Cell contents: " . dump_array($cell_contents)));
-		// go through tags in cell
-		// look for varname, field type, and extract table cell tag.
-		foreach ($cell_contents as $key=>$value) 
-		{
-	 		// the value, $tag field
-			if (preg_match('/^[$](.*?)( +[(]?(.*?)[)]?)?$/',$value,$matches))
-			{
-				$name = $matches[1];
-				$field_formats[$name] = $matches[3];
-				$cell_contents[$key]='$' . $name;
-			}
-			elseif (preg_match('/^<table:table-cell.*?>/i',$value)) // the table-cell tag
-			{
-				$table_cell_tag=$cell_contents[$key]; // save for later processing
-				$table_cell_key=$key;
-			}
-		}
-$DEBUG && outline("Name=$name");
-		// create a date template cell for each format
-		$string_tags = xml_parse_tag($table_cell_tag);
-		$date_tags = $string_tags;
-		$number_tags = $string_tags;
-		$currency_tags = $string_tags;
-		$blank_tags = $string_tags;
-
-		// value types	
-		$date_tags["table:value-type"]="date";
-		$number_tags["table:value-type"]="float";
-		$currency_tags["table:value-type"]="currency";
-
-		// The _date marks the variable for needing replacement w/ date in ISO format
-		// literal $, not variable, for later replacement
-		$date_tags["table:date-value"]= '$' . $name . '_date'; 
-		$number_tags["table:value"]= '$' . $name;
-		$currency_tags["table:value"]= '$' . $name; 
-		unset($blank_tags["table:value"]);
-
-		// assemble tags into cells, and cells into strings
-		foreach (array("string","date","number","currency","blank") as $a)
-		{
-			$b=$cell_contents; // new working copy
-			$tag_ar = $a . "_tags";
-			$b[$table_cell_key]=xml_assemble_tag($$tag_ar);
-			$c[$a]=xml_assemble_cell($b);
-		}
-		$parsed_cells[$name]=$c;
-		unset($c);
-$DEBUG && outline(red("Parsed Cells here: " . dump_array($parsed_cells["DATA-CELL"])));
-	}
-	// construct data table here:
-	$tot_recs = is_array($data_recs) ? count($data_recs) : sql_num_rows($data_recs);
-	for ($x=0;$x<$tot_recs;$x++)
-	{
-$DEBUG && outline("Looping through data");
-		set_time_limit(30);
-
-		$rec=is_array($data_recs) ? array_shift($data_recs) : sql_fetch_assoc($data_recs);
-//		foreach($field_formats as $field=>$format)
-		foreach($rec as $field=>$value)
-		{
-//			$value = $rec[$field];
-			// add backslashes to $ so they don't misfire in preg_replace;
-			$value = preg_replace('/\$/s','\\\$',trim($value));
-			$format = $field_formats[$field];
-			if ((!$value) && (!is_numeric($value)))
-			{
-					$format="blank";
-			}
-			elseif (!$format) // if not explicitly set, try to determine from value
-			{
-				if (is_numeric($value) && (!preg_match('/^0[^\.]+/',$value)))
-				{
-					$format="number";
-				}
-				elseif (dateof($value) && (!is_numeric($value)))
-				{
-					$format="date";
-				}
-				else
-				{
-					$format="string";
-				}
-			}
-			$dt_rpl='/[$]'.$field.'_date/i';
-			$t_rpl='/[$]'.$field.'/i';
-            $def_rpl='/[$]DATA-CELL/i';
-            $def_dt_rpl='/[$]DATA-CELL' . "_date/i";
-            $head_rpl='/[$]HEADER-CELL/i';
-			// date in table-cell tag (act. value)
-
-           if (!$default_template)
-            {
-                $stuff=preg_replace($dt_rpl,dateof($value,"SQL"),$parsed_cells[$field][$format]);
-                // the remaining replacements
-                $row_output.=preg_replace($t_rpl,htmlspecialchars($value,ENT_QUOTES),$stuff);
-            }
-            else
-            {
-                $stuff=preg_replace($def_dt_rpl,htmlspecialchars(dateof($value,"SQL")),$parsed_cells["DATA-CELL"][$format]);
-				if ($format=="date")
-				{
-					$value=dateof($value);
-				}
-$DEBUG && outline("Stuff=" . webify($stuff));
-//                 $row_output.=preg_replace($def_rpl,htmlspecialchars($value,ENT_QUOTES),$stuff);
-                   $row_output .= preg_replace($def_rpl,ooify($value),$stuff);
-
-$DEBUG && outline(webify("VALUE = $value, DATA-CELL-TEMPLATE= " . $parsed_cells["DATA-CELL"][$format]));
-                if ($x==0) // first time through, do header
-                {
-//outline(webify("My header row cell is $header_row_cell"));
-//outline(webify("Now my header is: $header_stuff"));
-//                     $header_stuff.=preg_replace($head_rpl,htmlspecialchars($field,ENT_QUOTES),$header_template_cell);
-                    $header_stuff.=preg_replace($head_rpl,ooify($field),$header_template_cell);
-                }
-            }
-		}
-$DEBUG && outline(webify("row output = $row_output"));
-		$table_output .= $data_template_row_start . $row_output . $data_template_row_end;
-		$row_output="";
-	}
-	$header_stuff = $header_stuff . $header_template_row_end;
-	$zip_files["content.xml"]=$data_template_start . $header_stuff . $table_output . $data_template_end;
-	if ($GLOBALS["DEBUG"])
-	{
-		outline("Here is content.xml: " . webify($zip_files["content.xml"]));
-	}
-	$zip = new zipfile();
-	foreach ($zip_files as $name=>$data)
-	{
-		$zip->addfile($data,$name);
-	}
-	return $zip;
 }
 
 function office_mime_header($filename)
@@ -840,7 +680,7 @@ function serve_office_doc($doc,$filename) {
 
 function oo_get_upload_template($var_name)
 {
-	//returns the out_form variable, suitable for the office_merge() function
+	//returns the out_form variable, suitable for the template_merge() function
 	global $UID;
 	if ($_FILES[$var_name]['error']=='0') { //successful upload
 		$name = $_FILES[$var_name]['name'];

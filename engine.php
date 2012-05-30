@@ -782,7 +782,8 @@ function engine($control='',$control_array_variable='control')
 
 				//THIS ISN'T READY YET
 // 				//-- general child record handling --//
-     				if ( ($format != 'data') and !be_null($def['child_records']) ) {
+     				//if ( ($format != 'data') and !be_null($def['child_records']) ) {
+     				if ( !be_null($def['child_records']) ) {
      					$output .= list_all_child_records($object,$REC[$def['id_field']],$def);
      				}
 				
