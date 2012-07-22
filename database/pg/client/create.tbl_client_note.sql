@@ -1,9 +1,16 @@
 CREATE TABLE tbl_client_note (
 	client_note_id		SERIAL PRIMARY KEY,
-	is_front_page		BOOLEAN NOT NULL,
 	client_id			INTEGER NOT NULL REFERENCES tbl_client(client_id),
+	is_front_page		BOOLEAN NOT NULL,
+	front_page_until	TIMESTAMP(0),
+	flag_entry_codes	VARCHAR[],
+	flag_entry_until	TIMESTAMP(0),
+	is_entry_dismissable		BOOLEAN,
 	note				TEXT NOT NULL,
-	flag_entry_codes		VARCHAR[],
+	is_dismissed		BOOLEAN,
+	dismissed_by		INTEGER REFERENCES tbl_staff (staff_id),
+	dismissed_at		TIMESTAMP(0),
+	dismissed_comment	TEXT,
 	--system fields
 	added_by			INTEGER NOT NULL REFERENCES tbl_staff (staff_id),
 	added_at			TIMESTAMP(0)     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -15,6 +22,8 @@ CREATE TABLE tbl_client_note (
 						  CHECK ((NOT is_deleted AND deleted_by IS NULL) OR (is_deleted AND deleted_by IS NOT NULL)),
 	deleted_comment		TEXT,
 	sys_log			TEXT
+	CONSTRAINT dismissed_check CHECK (COALESCE(is_dismissed::text,dismissed_at::text,dismissed_by::text,dismissed_comment) IS NULL
+		OR (is_dismissed::text || dismissed_at::text || dismissed_by::text || dismissed_comment) IS NOT NULL)
 );
 
 CREATE OR REPLACE VIEW client_note AS
