@@ -2199,7 +2199,11 @@ function smart_char_destroy($string)
 			    chr(148)=>'"', //right double "
 				chr(149)=>'*', // Bullet
 			    chr(150)=>'-', //medium dash
-			    chr(151)=>'--'  // &mdash, good enough for now (we don't want to store HTML '&mdash;' or '&#151;').
+			    chr(151)=>'--',  // &mdash, good enough for now (we don't want to store HTML '&mdash;' or '&#151;').
+				chr(169)=>'(c)',
+				chr(188)=>'1/4',
+				chr(189)=>'1/2',
+				chr(190)=>'3/4'
 			    );
 	return str_replace(array_keys($smarties),array_values($smarties),$string);
 }
