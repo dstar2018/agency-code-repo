@@ -410,10 +410,12 @@ function show_query($fields,$result,$control,$def,$total,$control_array_variable
 
 		$row_content = $fn($fields,$position,$a,$control,$def,$control_array_variable,$REC_NUM);
         $row_content = 	$row_content
+			.cell(''
 			. hiddenvar('objectPickerObject',$def['object'])
 			. hiddenvar('objectPickerId',$a[$def['id_field']])
 			. hiddenvar('objectPickerMethod','SearchResult')
-			. hiddenvar('objectPickerLabel',object_label($def['object'],$a[$def['id_field']]));
+			. hiddenvar('objectPickerLabel',object_label($def['object'],$a[$def['id_field']]))
+			,'class="hidden"');
 
 		if ($reverse) {
 			//pre-pend result set

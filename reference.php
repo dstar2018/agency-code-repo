@@ -141,7 +141,7 @@ function populate_object_references( $control ) {
 function object_reference_container($title='') {
 	return div('','infoAdditionalContainer')
 	. div('','objectReferenceContainer')
-	. div('','ajClientSearchResults');
+	. div('','','class="ajObjectSearchResult"');
 }
 
 function post_object_references( $rec,$def,$refs, &$mesg ) {
@@ -176,10 +176,12 @@ function post_object_references( $rec,$def,$refs, &$mesg ) {
 function object_selector_generic( $object='', &$div_id='',$filter=array(), $max_count=1, $label='',$class='')
 {
 	$def=get_def($object);
+	$main_def=get_def(AG_MAIN_OBJECT);
+	$main_id_field=$main_def['id_field'];
 	$obj_opt='object="'.$object.'"';
 	$Uobj = ucfirst($object);
 	$div_id=orr($div_id,'ObjectSelector'.$Uobj);
-    $label=div(orr($title,"Select " . ucfirst(orr($object,'objects'))),'objectSelectorTitle' . $Uobj,'class="objectSelectorTitle"');
+	$label=div(orr($label,"Select " . ucfirst(orr($object,'objects'))),'objectSelectorTitle' . $Uobj,'class="objectSelectorTitle"');
 	$op=hiddenvar('objectPickerObject',$object);
 	$method='Pick';
 	$id_field=$def['id_field'];
@@ -203,11 +205,18 @@ function object_selector_generic( $object='', &$div_id='',$filter=array(), $max_
 			break;
 		default :
 			$label_field = "'" . $Uobj . "' || ' ' || " . $id_field;
+			$method='Search'; //FIXME: does Pick make any sense for selector?
 	}
 	$op .= hiddenvar('objectPickerMethod',$method);
 	if ($method=='Search') {
+		$my_control=(in_array($main_id_field,array_keys($def['fields'])) and count(staff_client_assignments_ids($GLOBALS['UID'])) > 0) ? (formcheck('objectPickerMyClients',true) . ' My clients only') : '';
+		// FIXME, hack for guest, which has a client_id field in it
+		if ($object=='guest') {
+			$my_control='';
+		}
 		$op .= form_field('text','objectPickerSearchText')
 			. hiddenvar('objectPickerMaxSelect',$max_count) // FIXME: this will break with multiple selectors on one form
+			. $my_control
 			. button('Search','','','','','class="objectPickerSubmit"');
 	} elseif ($method=='Pick') {
 		$op .= selectto('objectPickerPickList',$obj_opt )
@@ -356,63 +365,6 @@ function object_label($object,$id) {
 			break;
 	}
 	return $l;
-}
-
-function object_qs_filter($qs_text,$object=AG_MAIN_OBJECT_DB)
-{
-	if (!$qs_text) {
-		return false;
-	}
-	switch( strtolower($object) ) {
-		case 'staff':
-			$filter['ILIKE:staff_name(staff_id)']="%$qs_text%";
-			break;
-		case 'guest':
-			$filter['ILIKE:guest_name(guest_id)']="%$qs_text%";
-			break;
-		case 'client':
-			if ( is_numeric( $qs_text )  && ($qs_text <= AG_POSTGRESQL_MAX_INT)) {
-				// check for unduplicated clients
-				$client = sql_fetch_assoc(client_get($qs_text));
-				if ($client) {
-					$qs_text = orr($client['client_id'],$qs_text);
-				} 
-				$filter[AG_MAIN_OBJECT_DB.'_id']=$qs_text;
-			} elseif( $x = dateof($qs_text,'SQL') ) {
-				/* DOB */
-				$filter['dob']=dateof($qs_text,'SQL');
-			} elseif( $x = ssn_of($qs_text) ) {
-				$filter['ssn']=$qs_text;
-			} elseif (preg_match('/^c(ase)?[: ]*([0-9]{1,6})/i',$qs_text,$matches)) {
-				/* Clinical ID */
-				$filter['clinical_id'] = $matches[2];
-			} elseif (preg_match('/^kc(id)?[: ]*([0-9]{1,6})/i',$qs_text,$matches)) {
-				/* KCID */
-				$filter['king_cty_id'] = $matches[2];
-			} elseif (preg_match('/a(uth)?[: ]*([0-9]{1,7})/i',$qs_text,$matches)) {
-				/* KC clinical authorization number */
-				$rec = array_shift(get_generic(array('kc_authorization_id'=>$matches[2]),'','','clinical_reg'));
-				if ( $x = $rec[AG_MAIN_OBJECT_DB . '_id'] ) {
-					$filter['client_id']=$x;
-				}
-			} elseif ( $x = unit_no_of($qs_text)) {
-				/* Housing Unit (most recent occupant) */
-				$rec = sql_fetch_assoc(get_last_residence($x));
-				if ( $x = $rec[AG_MAIN_OBJECT_DB . '_id'] ) {
-					$filter['client_id']=$x;
-				}
-			} elseif (preg_match('/^([a-z_]{3,}):([0-9]*)$/i',$qs_text,$m)) {
-				/*
-				 * Engine Object search of the form {obj}:xxxx
-				 * where {obj} is the name of the object (or the
-				 * first 3 or more characters of the name)
-				 */
-			} else {
-				$filter['ILIKE:name_full_alias']="%$qs_text%";
-			}
-			break; /// end case client
-	}
-	return $filter;
 }
 
 ?>

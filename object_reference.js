@@ -32,10 +32,9 @@ should be included in this distribution.
 //FIXME:  This code could be nicer and cleaner
 
 /* Client Selector */
-function qs_object( searchText, obj ) {
+function qs_object( searchText, obj, MyClients ) {
 		var curPage = window.location.pathname;
-		//var args = { QuickSearch: searchText, MyClients: myClient, select_to_url: curPage };
-		var args = { QuickSearch: searchText, QuickSearchObject: obj, MyClients: false, select_to_url: curPage };
+		var args = { QuickSearch: searchText, QuickSearchObject: obj, MyClients: MyClients, select_to_url: curPage };
 		return args;
 };	
 
@@ -91,6 +90,27 @@ $(function() {
 });
 
 $(function() {
+	// Toggle object picker change link
+	$('.objectPickerToggleLink').live( 'click',function(e) {
+		e.preventDefault();
+		var selector = $(this).closest('.engineValueContainer').find('.objectPickerToForm');
+		var was_visible=$(selector).is(':visible');
+		var label = $(this).closest('.engineValueContainer').find('.engineValueLabel');
+		$(selector).toggle();
+		if ( was_visible ) {
+			$(this).html('change');
+			$(label).show();
+		} else {
+			$(this).html('cancel');
+			$(label).hide();
+		}
+	});
+
+});
+
+
+
+$(function() {
 	$(".objectPickerSubmit").live("click", function(event) {
 		event.preventDefault();
 		var method =$(event.target).closest('div').find("[name=objectPickerMethod]").val();
@@ -100,7 +120,7 @@ $(function() {
 		if ( method=='Search') {
 			var parentDiv = $(event.target).closest('div').parent().closest('div');
 			if (parentDiv.hasClass('objectPickerToForm')) {
-				var target = parentDiv.prev();
+				var target = $(this).closest('.engineValueContainer').find('input.engineValue');
 				if (target.id) {
 					var id = target.id;
 				} else {
@@ -121,8 +141,12 @@ $(function() {
 		var selected = process_selector_event( event,method,id );
 		if (selected !== undefined) {
 			if (selected.target) {
-				$('#'+selected.target).val( selected.id ).after( selected.label ).next().hide();
-				$(this).closest('div').remove();
+				$('#'+selected.target).val( selected.id ).parent().find('.engineValueLabel').remove();
+				$('#'+selected.target).after( $('<p/>').addClass('engineValueLabel').html(selected.label) );
+				$('#'+selected.target).closest('.engineValueContainer').find('.objectPickerToForm').hide();
+				$('#'+selected.target).closest('.engineValueContainer').find('.objectPickerToggleLink').html('change').show();
+				$('#'+selected.target).closest('.engineValueContainer').find('.engineValueUnsetLink').show();
+				$(this).closest('div.ajObjectSearchResult').dialog('close').hide();
 			} else {
 				addSelectedObject( selected );
 			}
@@ -149,25 +173,34 @@ function process_selector_event( event,method,target_el ) {
 		case 'Search':
 			var search_text = $(event.target).closest('div').find("[name=objectPickerSearchText]").val();
 			var obj = $(event.target).closest('div').find("[name=objectPickerObject]").val();
-			var args = qs_object(search_text,obj);
+			var my = $(event.target).closest('div').find("[name=objectPickerMyClients]").attr('checked');
+			var args = qs_object(search_text,obj,my);
+			var spinner = $('<img/>').attr('src','images/loading.gif');
 			$.ajax({
 				method: "get",
 				url: "ajax_selector.php",
 				data: args,
-				beforeSend: function(){$("#page_loading").show("fast");},
-				complete: function(){ $("#page_loading").hide("fast");}, 
+				beforeSend: function(){$(event.target).after($(spinner));},
+				complete: function(){ $(spinner).remove();}, 
 				success: function(html){
 					$("#aj_client_selector_my_clients").val(false);
-					$("#ajClientSearchResults").html(html); 
+					$(".ajObjectSearchResult").html(html).dialog( { modal: true, title: 'Select a ' + obj, width: 'auto' } ); 
 					//var button = '<td><button type="button" class="objectPickerSubmit">SELECT</button></td>';
 					var button = '<td><button type="button" class="objectPickerSubmit">SELECT'
 							+ (target_el ? '<span class="serverData">'+target_el+'</span>' : '')
 							+ '</button></td>';
-					$("#ajClientSearchResults tr.generalData2,tr.generalData1").each( function(i) {
-						$(this).children("td:eq(1)").html(button);
+					$(".ajObjectSearchResult tr.generalData2,tr.generalData1").each( function(i) {
+						$(this).children("td:eq(1)").html($(button));
 					});
-					$("#ajClientSearchResults").show(); 
-					var tab=$("#ajClientSearchResults table");
+					$(".ajObjectSearchResult").show(); 
+					var length=$(".ajObjectSearchResult tr.generalData2,tr.generalData1").length;
+					if (length==1) { // FIXME: and autoselect_on_1
+						$('.ajObjectSearchResult button').click();
+					}
+					if (length==0) {
+						$('.ajObjectSearchResult').dialog('close').hide();
+					}
+					var tab=$(".ajObjectSearchResult table"); // FIXME ???? orphaned ??
 					}
 			});
 	}
@@ -194,7 +227,7 @@ $(function() {
 	$("#objectSelectorHideLink").click( function(event) {
 		event.preventDefault();
 		$("#objectSelectorForm").hide();
-		$("#ajClientSearchResults").hide();
+		$(".ajObjectSearchResult").hide();
 		$("#objectSelectorShowLink").show();
 	});
 	$('.selectedObjectRemove').live( 'click', function(event) {

@@ -37,13 +37,15 @@ $qs=$_REQUEST['QuickSearch'];
 $my=$_REQUEST['MyClients'];
 $obj=orr($_REQUEST['QuickSearchObject'],AG_MAIN_OBJECT_DB);
 
-if ($my && ($my == 'true')) {
-	$filt['IN:' . $obj .'_id'] = staff_client_assignments_ids($UID);
-} elseif ($qs) {
+if ($qs) {
 	$filt = object_qs_filter($qs,$obj);
 } else {
-	return false;
+	// return false;
 }
+if ($my == 'true') {
+	$filt['IN:' . $obj .'_id'] = staff_client_assignments_ids($UID);
+}
+
 $control=array('action' => 'list', 'list' => array( 'filter' => $filt));
 $def = get_def($obj);
 $recs = list_generic($control,$def,'',$dummy);

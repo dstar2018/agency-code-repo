@@ -371,8 +371,7 @@ function object_quick_search($object, $query_string='')
 		$filter=array($def['id_field']=>$query_string);
 		$found = count(get_generic($filter,NULL,NULL,$def));
 		if ($found > 0) {
-			global $log_page;
-			$object_page=orr($def['quick_search']['jump_page'],$log_page,'display.php');
+			$object_page=orr($def['quick_search']['jump_page'],'display.php');
 			if ($object_page=='display.php') {
 				$jump_url="display.php?object=$object&action=view&id=$query_string";
 			} else {
@@ -382,28 +381,7 @@ function object_quick_search($object, $query_string='')
 			exit;
 		}
 	}
-	if (dateof($query_string) and ($mf=$qdef['match_fields_date'])) {
-		foreach($mf as $m) {
-			$filter[]=array($m=>dateof($query_string,'SQL'));
-		}
-	} elseif  (ssn_of($query_string) and ($mf=$qdef['match_fields_ssn'])) {
-		foreach($mf as $m) {
-			$filter=array($m=>ssn_of($query_string,'SQL'));
-		}
-	} else {
-		$query_string=sql_escape_string($query_string);
-		$filter=array();
-		// this filter will match names either in "first last" or "last, first"
-		$match_fields=orr($def['quick_search']['match_fields'],array('name_full'));
-		foreach ($match_fields as $field) {
-			$filter['ILIKE:'.$field] = '%'.$query_string.'%';
-		}
-	}
-	//Convert filter to OR
-	if (count($filter)>1) {
-		$filter = array($filter);
-	}
-
+	$filter=object_qs_filter($query_string,$object);
 	$control = array_merge(array( 'object'=> $object,
 						'action'=>'list',
 						'list'=>array('filter'=>$filter),
@@ -415,6 +393,88 @@ function object_quick_search($object, $query_string='')
 	$sub = oline('Found '.$TOTAL.' results for '.bold($query_string),2);
 	return $sub . $result;
 
+}
+
+function object_qs_filter($qs_text,$object=AG_MAIN_OBJECT_DB)
+{
+	if (!$qs_text) {
+		return false;
+	}
+	$def=get_def($object);
+	switch( strtolower($object) ) {
+		case 'staff':
+			$filter['ILIKE:staff_name(staff_id)']="%$qs_text%";
+			break;
+		case 'guest':
+			$filter['ILIKE:guest_name(guest_id)']="%$qs_text%";
+			break;
+		case 'client':
+			if ( is_numeric( $qs_text )  && ($qs_text <= AG_POSTGRESQL_MAX_INT)) {
+				// check for unduplicated clients
+				$client = sql_fetch_assoc(client_get($qs_text));
+				if ($client) {
+					$qs_text = orr($client['client_id'],$qs_text);
+				} 
+				$filter[AG_MAIN_OBJECT_DB.'_id']=$qs_text;
+			} elseif( $x = dateof($qs_text,'SQL') ) {
+				/* DOB */
+				$filter['dob']=dateof($qs_text,'SQL');
+			} elseif( $x = ssn_of($qs_text) ) {
+				$filter['ssn']=$qs_text;
+			} elseif (preg_match('/^c(ase)?[: ]*([0-9]{1,6})/i',$qs_text,$matches)) {
+				/* Clinical ID */
+				$filter['clinical_id'] = $matches[2];
+			} elseif (preg_match('/^kc(id)?[: ]*([0-9]{1,6})/i',$qs_text,$matches)) {
+				/* KCID */
+				$filter['king_cty_id'] = $matches[2];
+			} elseif (preg_match('/a(uth)?[: ]*([0-9]{1,7})/i',$qs_text,$matches)) {
+				/* KC clinical authorization number */
+				$rec = array_shift(get_generic(array('kc_authorization_id'=>$matches[2]),'','','clinical_reg'));
+				if ( $x = $rec[AG_MAIN_OBJECT_DB . '_id'] ) {
+					$filter['client_id']=$x;
+				}
+			} elseif ( $x = unit_no_of($qs_text)) {
+				/* Housing Unit (most recent occupant) */
+				$rec = sql_fetch_assoc(get_last_residence($x));
+				if ( $x = $rec[AG_MAIN_OBJECT_DB . '_id'] ) {
+					$filter['client_id']=$x;
+				}
+			} elseif (preg_match('/^([a-z_]{3,}):([0-9]*)$/i',$qs_text,$m)) {
+				/*
+				 * Engine Object search of the form {obj}:xxxx
+				 * where {obj} is the name of the object (or the
+				 * first 3 or more characters of the name)
+				 */
+			} else {
+				$filter['ILIKE:name_full_alias']="%$qs_text%";
+			}
+			break; /// end case client
+		default :
+			if (dateof($qs_text) and ($mf=$qdef['match_fields_date'])) {
+				foreach($mf as $m) {
+					$filter[]=array($m=>dateof($qs_text,'SQL'));
+				}
+			} elseif  (ssn_of($qs_text) and ($mf=$qdef['match_fields_ssn'])) {
+				foreach($mf as $m) {
+					$filter=array($m=>ssn_of($qs_text,'SQL'));
+				}
+			} else {
+				$qdef=$def['quick_search'];
+				$query_string=sql_escape_string($query_string);
+				$filter=array();
+				$match_fields=orr($qdef['match_fields'],$def['list_fields']);
+				foreach ($match_fields as $field) {
+					//$filter['ILIKE:'.$field.'::text'] = '%'.$qs_text.'%'; //FIXME: Why doesn't read_filter handle this?
+					$filter["ILIKE:TEXT($field)"] = '%'.$qs_text.'%';
+				}
+			}
+			//Convert filter to OR
+			if (count($filter)>1) {
+				$filter = array($filter);
+			}
+			break; // End default case
+	}
+	return $filter;
 }
 
 function staff_search()

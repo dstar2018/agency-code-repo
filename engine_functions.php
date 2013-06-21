@@ -931,7 +931,7 @@ function sql_metadata_wrapper($sql_metadata)
 	    /*
 	     * lookup table handling
 	     */
-	    if ( (!preg_match('/_id$/i',$field)) and $l_field = $metadata['lookup_column'] and $l_table = $metadata['lookup_table']
+	    if ( $l_field = $metadata['lookup_column'] and $l_table = $metadata['lookup_table']
 		  and is_table($l_table) and is_field($l_table,$l_field)) {
 
 			if (preg_match('/^tbl_(.*)$/',$l_table,$m) and is_view($m[1]) and is_field($m[1],$l_field)) {
@@ -939,7 +939,7 @@ function sql_metadata_wrapper($sql_metadata)
 				$l_table=$m[1];
 			}
 		    $l_label = is_field($l_table,'description') ? 'description' : $l_field;
-		    $sql_metadata[$field]['data_type'] = 'lookup';
+		    $sql_metadata[$field]['data_type'] = preg_match('/_id$/i',$field) ? 'selector' : 'lookup';
 		    $sql_metadata[$field]['lookup'] = array('table'=>$l_table,
 									  'value_field'=>$l_field,
 									  'label_field'=>$l_label);
@@ -1398,7 +1398,7 @@ function write_action_options($config_object,$FIELDS)
 
 }
 
-function blank_generic(&$def, &$rec_init,&$control)
+function blank_generic(&$def, $rec_init,&$control)
 {
 	/*
 	 * Returns a blank record, filling in defaults, and values
@@ -1825,7 +1825,7 @@ function view_generic_row($key,$value,$def,$action,$rec)
 	}
 
 	$l_opts = 'class="engineLabel"';
-	$v_opts = 'class="engineValue"';
+	$v_opts = 'class="engineValueContainer"';
 
 	$pr = $def['fields'][$key];
 
@@ -1929,22 +1929,34 @@ function form_field_generic($key,$value,&$def,$control,&$Java_Engine,$formvar='r
 	} elseif ($type=='phone') {
 		$type='varchar';
 	}
-	if ($key=='guest_id') {
-		$type = 'guest';
-	}
-      $len = $pr['length'];
+	$len = $pr['length'];
 	switch ($type) {
-	case 'guest':
+
+	case 'selector':
+		if (!($object=orr($def[$key]['selector_object'],$def[$key]['lookup']['table']))) {
+			if (preg_match('/^(.*)_id$/',$key,$match)) {
+				$object=$match[1];
+			}
+		}
+		if (!$object) {
+			$field='Could not determine object for selector';
+			break;
+		}	
 		//$allowed=$pr[$action.'_main_objects'] || be_null($value); //edit & add
-		$allowed=true;
-		$field = ( $value ? elink_value('guest',$value) : '')
-			. hiddenvar($formvar.'['.$key.']',$value);
+		$allowed=true;  //FIXME
+		$field .= ( $value ? para(elink_value($object,$value),'class="engineValueLabel"') : '')
+			. hiddenvar($formvar.'['.$key.']',$value,'class="engineValue"');
 		if ($allowed) {
-			//$wipeout = be_null($value) ? '' : formvar_wipeout($formvar.'['.$key.']');
-			$wipeout = formvar_wipeout($formvar.'['.$key.']');
 			$div_dummy='';
-			$field .= object_selector_generic( 'guest',$div_dummy,'',1,'Guest Label','objectPickerToForm');
-			$field .= $wipeout;
+			if (!$value) {
+				$c_class=' hidden';
+			} else {
+				$s_class=' hidden';
+			}
+			$wipeout=hlink('#','unset',NULL,'class="engineValueUnsetLink' . (!$value ? ' hidden' : '') . '"');
+			$selector = object_selector_generic( $object,$div_dummy,'',1,'','objectPickerToForm' . $s_class);
+			$field .= $selector . hlink('#','change...',NULL,'class="fancyLink objectPickerToggleLink ' . $c_class.'"')
+					. ' ' . $wipeout;
 		}
 		break;
 	case 'staff':
@@ -2191,7 +2203,7 @@ function form_generic_row($key,$value,&$def,$control,&$Java_Engine,$rec,$formvar
 		$label_cell = cell($label,$l_opts);
 	}
 
-	$v_opts = 'class="engineValue"';
+	$v_opts = 'class="engineValueContainer"';
 
 	switch ($pr['cell_align_value']) {
 	case 'center':

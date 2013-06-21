@@ -48,7 +48,11 @@ switch ($qs_type) {
 	//custom type handling here
  default :
 	$func=$qs_type.'_search';
-	 $out = $func();
+	if (function_exists($func)) {
+		$out = $func();
+	} else {
+		$out = object_quick_search($qs_type,$_REQUEST['QuickSearch']);
+	}
 }
 
 $title = $AG_QUICK_SEARCHES[$qs_type];

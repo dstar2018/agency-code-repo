@@ -47,6 +47,11 @@ function staff_client_assignments($staff_id)
 
 }
 
+function staff_client_assignments_ids( $staff_id ) {
+	$filter=staff_filter($staff_id);
+	return sql_fetch_column(agency_query('SELECT client_id FROM staff_assign_current',$filter),'client_id');
+}
+	
 function staff_client_assigned($cid,$exclude_just_monitoring=true)
 {
 	global $UID;

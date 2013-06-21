@@ -122,7 +122,7 @@ div.engineMain { margin: 0px 185px 0px 0px; }
 .engineLabel { background-color: #fffff4;
 			text-align: right; }
 
-.engineValue { background-color: #fdfdfd;
+.engineValueContainer { background-color: #fdfdfd;
 			text-align: left; }
 
 /* End Engine*/

@@ -1009,9 +1009,9 @@ function oline( $a="", $lines=1, $mode="")
 	return $a . str_repeat($sep,$lines);
 }
 
-function para($a)
+function para($a,$options='')
 {
-    return ("<p>\n$a\n</p>\n");
+    return ("<p $options>\n$a\n</p>\n");
 }
 
 function indent($a="", $spaces="9")
@@ -1482,21 +1482,8 @@ function formradio_wipeout ($varname,$label='')
 
 function formvar_wipeout($varname,$label='',$submit=true)
 {
-	global $AG_HEAD_TAG;
-	if ($submit) {
-		$extra_js = 'form.submit();';
-	}
-	$js = Java_Engine::get_js('
-					  function clear_formvar( form , nam ) {
-						  nam.value = null;
-                                      '.$extra_js.'
-					  }');
-	if (!strpos($AG_HEAD_TAG,$js)) {
-		$AG_HEAD_TAG .= $js;
-	}
 	$label = orr($label,smaller(' unset',2));
-	$onclick = 'javascript: clear_formvar(document.'.$GLOBALS['form_name'].',document.'.$GLOBALS['form_name'].'.elements[\''.$varname.'\'])';
-	return hlink($onclick,$label,' onclick="'.$onclick.'"');
+	return hlink('#',$label,NULL,'class="formWipeoutLink"').span($varname,'class="formWipeoutInfo serverData"');
 }
 
 function yes_no_radio($name, $label, $default="")
