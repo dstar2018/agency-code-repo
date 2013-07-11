@@ -566,6 +566,7 @@ class Calendar {
 				if ($rec['description']) {
 					$out .= alt(substr($rec['description'],0,$blocks*12),$rec['description']);
 				}
+				$out .= oline() . timeof($rec['event_start']) . ' -> ' . timeof($rec['event_end']);
 				return div($link.$overlap_add_link,'',' class="calendarE"'). $prepend . span($out,' class="calendarE"') . $append;
 			}
 			break;
