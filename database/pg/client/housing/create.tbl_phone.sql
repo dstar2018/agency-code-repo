@@ -20,7 +20,16 @@ CREATE TABLE tbl_phone (
 );
 
 CREATE OR REPLACE VIEW phone AS
-SELECT * FROM tbl_phone WHERE NOT is_deleted;
+SELECT tbl_phone.*,
+	number
+	|| CASE WHEN extension IS NOT NULL THEN ', ext: ' || extension ELSE '' END
+	|| ' (' || description || ')'
+	AS number_f
+FROM tbl_phone LEFT JOIN l_phone_type USING (phone_type_code)
+WHERE NOT tbl_phone.is_deleted;
+
+CREATE OR REPLACE VIEW phone_current AS
+SELECT * FROM phone WHERE (phone_date <= current_date) AND (COALESCE(phone_date_end,current_date)>=current_date);
 
 CREATE INDEX index_tbl_phone_client_id_phone_date ON tbl_phone ( client_id,phone_date );
 CREATE INDEX index_tbl_phone_phone_date ON tbl_phone ( phone_date );
